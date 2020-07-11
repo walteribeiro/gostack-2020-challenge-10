@@ -73,38 +73,79 @@ const FoodDetails: React.FC = () => {
 
   useEffect(() => {
     async function loadFood(): Promise<void> {
-      // Load a specific food with extras based on routeParams id
+      const response = await api.get<Food>(`foods/${routeParams.id}`);
+      setFood(response.data);
+      setExtras(response.data.extras.map(e => ({ ...e, quantity: 0 })));
     }
 
     loadFood();
   }, [routeParams]);
 
   function handleIncrementExtra(id: number): void {
-    // Increment extra quantity
+    setExtras(
+      extras.map(e => {
+        if (e.id === id) {
+          return {
+            ...e,
+            quantity: e.quantity + 1,
+          };
+        }
+        return e;
+      }),
+    );
   }
 
   function handleDecrementExtra(id: number): void {
-    // Decrement extra quantity
+    setExtras(
+      extras.map(e => {
+        if (e.id === id) {
+          return {
+            ...e,
+            quantity: e.quantity - 1,
+          };
+        }
+        return e;
+      }),
+    );
   }
 
   function handleIncrementFood(): void {
-    // Increment food quantity
+    setFoodQuantity(foodQuantity + 1);
   }
 
   function handleDecrementFood(): void {
-    // Decrement food quantity
+    if (foodQuantity !== 1) {
+      setFoodQuantity(foodQuantity - 1);
+    }
   }
 
   const toggleFavorite = useCallback(() => {
-    // Toggle if food is favorite or not
+    setIsFavorite(!isFavorite);
+    if (isFavorite) {
+      api.delete(`favorites/${food.id}`);
+    } else {
+      api.post('favorites', food);
+    }
   }, [isFavorite, food]);
 
   const cartTotal = useMemo(() => {
-    // Calculate cartTotal
+    const extrasTotal = extras.reduce(
+      (total, extra) => total + extra.value * extra.quantity,
+      0.0,
+    );
+
+    return formatValue((food.price + extrasTotal) * foodQuantity);
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {
-    // Finish the order and save on the API
+    await api.post('orders', {
+      product_id: food.id,
+      name: food.name,
+      description: food.description,
+      price: food.price,
+      thumbnail_url: food.image_url,
+      extras,
+    });
   }
 
   // Calculate the correct icon name
